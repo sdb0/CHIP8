@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>CHIP8</title>
+    <style>
+      body { margin: 0; }
+      canvas { width: 100%; height: 100%}
+    </style>
+  </head>
+<body>
+<script type="text/javascript" src="./interpreter.js"></script>
+<script src="./three.js"></script>
+<script type="text/javascript">
+const chip8 = new Interpreter();
+chip8.initialize();
+
+function onKeyDown(event) {
+  const keycode = event.key.toUpperCase();
+  switch (keycode) {
+    case '1':
+      chip8.setKeyDown(1);
+      break;
+    case '2':
+      chip8.setKeyDown(2);
+      break;
+    case '3':
+      chip8.setKeyDown(3);
+      break;
+    case '4':
+      chip8.setKeyDown(0xC);
+      break;
+    case 'Q':
+      chip8.setKeyDown(4);
+      break;
+    case 'W':
+      chip8.setKeyDown(5);
+      break;
+    case 'E':
+      chip8.setKeyDown(6);
+      break;
+    case 'R':
+      chip8.setKeyDown(0xD);
+      break;
+    case 'A':
+      chip8.setKeyDown(7);
+      break;
+    case 'S':
+      chip8.setKeyDown(8);
+      break;
+    case 'D':
+      chip8.setKeyDown(9);
+      break;
+    case 'F':
+      chip8.setKeyDown(0xE);
+      break;
+    case 'Z':
+      chip8.setKeyDown(0xA);
+      break;
+    case 'X':
+      chip8.setKeyDown(0);
+      break;
+    case 'C':
+      chip8.setKeyDown(0xB);
+      break;
+    case 'V':
+      chip8.setKeyDown(0xF);
+      break;
+  }
+};
+function onKeyUp(event) {
+  const keycode = event.key.toUpperCase();
+  switch (keycode) {
+    case '1':
+      chip8.setKeyUp(1);
+      break;
+    case '2':
+      chip8.setKeyUp(2);
+      break;
+    case '3':
+      chip8.setKeyUp(3);
+      break;
+    case '4':
+      chip8.setKeyUp(0xC);
+      break;
+    case 'Q':
+      chip8.setKeyUp(4);
+      break;
+    case 'W':
+      chip8.setKeyUp(5);
+      break;
+    case 'E':
+      chip8.setKeyUp(6);
+      break;
+    case 'R':
+      chip8.setKeyUp(0xD);
+      break;
+    case 'A':
+      chip8.setKeyUp(7);
+      break;
+    case 'S':
+      chip8.setKeyUp(8);
+      break;
+    case 'D':
+      chip8.setKeyUp(9);
+      break;
+    case 'F':
+      chip8.setKeyUp(0xE);
+      break;
+    case 'Z':
+      chip8.setKeyUp(0xA);
+      break;
+    case 'X':
+      chip8.setKeyUp(0);
+      break;
+    case 'C':
+      chip8.setKeyUp(0xB);
+      break;
+    case 'V':
+      chip8.setKeyUp(0xF);
+      break;
+  }
+};
+document.addEventListener("keydown", onKeyDown);
+document.addEventListener("keyup", onKeyUp);
+
+
+const program = [ 0x600f, 0x610a, 0x620c, 0xf029, 0x6305, 0x6505, 0xd358, 0x6515,
+0xf129, 0xd358, 0x6525, 0xf229, 0xd358 ];
+chip8.loadProgram(program);
+chip8.setPC(0x200);
+
+let renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+let scene = new THREE.Scene();
+let camera = new THREE.OrthographicCamera(
+  window.innerWidth / -2, window.innerWidth / 2,
+  window.innerHeight / 2, window.innerHeight / -2,
+  0.1, 5
+);
+
+let buffer = chip8.getScreenBuffer();;
+const uBuffer = Uint8Array.from(buffer);
+const dataTexture = new THREE.DataTexture(uBuffer, 0x3F + 1, 0x1F + 1, THREE.RGBAFormat);
+dataTexture.flipY = true;
+dataTexture.needsUpdate = true;
+const material = new THREE.MeshBasicMaterial({ map: dataTexture });
+const planeGeometry = new THREE.PlaneGeometry(20 * 0x3F, 20 * 0x1F);
+const plane = new THREE.Mesh(planeGeometry, material);
+scene.add(camera);
+scene.add(plane);
+camera.position.z = 5;
+
+// Technically a program is always divisible by 2 but it
+// may be malformed, so let's be safe
+const programLength = Math.floor(program.length / 2);
+let currentFrame = Date.now();
+function animate() {
+  requestAnimationFrame(animate);
+  currentFrame = Date.now();
+  chip8.step();
+
+  if (currentFrame - lastFrame > 33) {
+    // Update texture
+    // TODO: Only update if we've had a change?
+    buffer = chip8.getScreenBuffer();
+    uBuffer.set(Uint8Array.from(buffer));
+    dataTexture.needsUpdate = true;
+    lastFrame = currentFrame;
+  }
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>
